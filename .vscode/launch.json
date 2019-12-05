@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "file": "${workspaceFolder}/algorithm/index.html",
+            "name": "Launch algorithm page",
+            "request": "launch",
+            "type": "chrome"
+        }
+    ],
+    "version": "0.1.0"
+}
