@@ -138,63 +138,152 @@ const lights = [
     new Light("four")
 ],
     loopStage = Object.freeze({
-        transition: 0,
-        newTarget: 1
+        setNewPrimary: 0,
+        transitionToNewPrimary: 1,
+        wave: 2
     }),
     maxTransitionRgb = 5,
     msPerLoop = 100;
 
 var primaryLightIndex = 0,
-    stage = loopStage.transition;
+    secondaryLightIndex = 0,
+    stage = loopStage.setNewPrimary,
+    waveDirection = 0;
 
 (function () {
-    lights[0].currentColor.r = 255;
-    lights[0].targetColor.r = 255;
-    lights[1].currentColor.r = 255;
-    lights[1].currentColor.g = 255;
-    lights[1].targetColor.r = 255;
-    lights[1].targetColor.g = 255;
-    lights[2].currentColor.g = 255;
-    lights[2].targetColor.g = 255;
-    lights[3].currentColor.b = 255;
-    lights[3].targetColor.b = 255;
-    updateLights();
     setInterval(mainLoop, msPerLoop);
 })();
 
 function mainLoop() {
     switch (stage) {
-        case loopStage.transition:
-            transition();
-            if (transitionComplete()) {
-                stage = loopStage.newTarget;
+        case loopStage.setNewPrimary:
+            setNewPrimary();
+            stage = loopStage.transitionToNewPrimary;
+            break;
+        case loopStage.transitionToNewPrimary:
+            smoothTransition();
+            if (allLightsAtTarget()) {
+                stage = loopStage.wave;
             }
             break;
-        case loopStage.newTarget:
-            primaryLightIndex = getRandomInt(3);
-            lights[primaryLightIndex].targetColor.fromHsl(getRandomInt(360), 100, 50);
-            stage = loopStage.transition;
+        case loopStage.wave:
+            wave();
             break;
         default:
             break;
     }
-    //rotate();
-    //rainbow();
-    updateLights();
+
+    render();
+}
+
+function wave() {
+    if (waveDirection == 0) {
+        // Wave just beginning, set it to go up.
+        waveDirection = 1;
+        var hsl = lights[primaryLightIndex].currentColor.toHsl(),
+            targetH = hsl[0] + 90;
+        if (targetH > 360) {
+            targetH = targetH - 360;
+        }
+        lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
+        console.log("Wave going UP.");
+        console.log("   Primary H = " + hsl[0]);
+        console.log("   Target H = " + targetH);
+        console.log("   Light " + secondaryLightIndex + " going to (" + lights[secondaryLightIndex].targetColor.r + ", " + lights[secondaryLightIndex].targetColor.g + ", " + lights[secondaryLightIndex].targetColor.b + ")");
+        waveTransition();
+    } else if (waveDirection == 1) {
+        // Wave going up.
+        if (allLightsAtTarget()) {
+            // Wave hit the top, head down.
+            waveDirection = 2
+            var hsl = lights[primaryLightIndex].currentColor.toHsl(),
+                targetH = hsl[0] - 90;
+            if (targetH < 0) {
+                targetH = 360 - targetH;
+            }
+            lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
+            console.log("Wave going DOWN.");
+            console.log("   Primary H = " + hsl[0]);
+            console.log("   Target H = " + targetH);
+            console.log("   Light " + secondaryLightIndex + " going to (" + lights[secondaryLightIndex].targetColor.r + ", " + lights[secondaryLightIndex].targetColor.g + ", " + lights[secondaryLightIndex].targetColor.b + ")");
+        }
+        waveTransition();
+    } else if (waveDirection == 2) {
+        // Wave going down.
+        if (allLightsAtTarget()) {
+            // Wave hit the bottom, time to move on.
+            waveDirection = 0;
+            stage = loopStage.setNewPrimary;
+            console.log("Wave complete. Pick new target.");
+        } else {
+            waveTransition();
+        }
+    }
+}
+
+function setNewPrimary() {
+    primaryLightIndex = getRandomInt(lights.length - 1);
+    secondaryLightIndex = (primaryLightIndex + (lights.length / 2)) % lights.length;
+    var newHue = getRandomInt(360);
+
+    console.log("New standard H: " + newHue);
+
+    for (var i = 0; i < lights.length; i++) {
+        lights[i].targetColor.fromHsl(newHue, 100, 50);
+    }
 }
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max + 1));
 }
 
-function transition() {
+function transitionSingleLight(light) {
+    if (!light.currentColor.equals(light.targetColor)) {
+        light.currentColor.r = transitionColorValue(light.currentColor.r, light.targetColor.r);
+        light.currentColor.g = transitionColorValue(light.currentColor.g, light.targetColor.g);
+        light.currentColor.b = transitionColorValue(light.currentColor.b, light.targetColor.b);
+    }
+}
+
+function waveTransition() {
+    transitionSingleLight(lights[secondaryLightIndex]);
+    var targetColor = averageColor(lights[primaryLightIndex].currentColor, lights[secondaryLightIndex].currentColor);
+
     for (var i = 0; i < lights.length; i++) {
-        if (!lights[i].currentColor.equals(lights[i].targetColor)) {
-            lights[i].currentColor.r = transitionColorValue(lights[i].currentColor.r, lights[i].targetColor.r);
-            lights[i].currentColor.g = transitionColorValue(lights[i].currentColor.g, lights[i].targetColor.g);
-            lights[i].currentColor.b = transitionColorValue(lights[i].currentColor.b, lights[i].targetColor.b);
+        switch (i) {
+            case secondaryLightIndex:
+            case primaryLightIndex:
+                break;
+            default:
+                // Other lights should be halfway between primary and secondary.
+                lights[i].currentColor.fromColor(targetColor);
+                lights[i].targetColor.fromColor(targetColor);
+                break;
         }
     }
+}
+
+function averageColor(colorA, colorB) {
+    var average = new Color();
+    average.r = Math.round((colorA.r + colorB.r) / 2);
+    average.g = Math.round((colorA.g + colorB.g) / 2);
+    average.b = Math.round((colorA.b + colorB.b) / 2);
+    return average;
+}
+
+function smoothTransition() {
+    for (var i = 0; i < lights.length; i++) {
+        transitionSingleLight(lights[i]);
+    }
+}
+
+function allLightsAtTarget() {
+    for (var i = 0; i < lights.length; i++) {
+        if (!lights[i].currentColor.equals(lights[i].targetColor)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function transitionColorValue(current, target) {
@@ -205,37 +294,10 @@ function transitionColorValue(current, target) {
     return target > current ? current + step : current - step;
 }
 
-function transitionComplete() {
-    for (var i = 0; i < lights.length; i++) {
-        if (!lights[i].currentColor.equals(lights[i].targetColor)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function updateLights() {
+function render() {
     for (var index = 0; index < lights.length; index++) {
-        if (!lights[index].currentColor.equals(lights[index].targetColor)) {
-            document.getElementById(lights[index].id).style.backgroundColor = lights[index].currentColor.toRgbString();
-        }
+        document.getElementById(lights[index].id).style.backgroundColor = lights[index].currentColor.toRgbString();
     }
-}
-
-function rotate() {
-    var previousColor = lights[lights.length - 1].currentColor.clone();
-    for (var index = 0; index < lights.length; index++) {
-        var nextIndex = index + 1;
-        var nextColor = lights[index].currentColor.clone();
-        lights[index].currentColor.fromColor(previousColor);
-        previousColor = nextColor;
-    }
-
-    lights[0].currentColor.fromColor(previousColor);
-}
-
-function rainbow() {
-    var currentColor = lights[0].currentColor.toHsl(),
-        newH = currentColor[0] + 5;
-    lights[0].currentColor.fromHsl(newH, currentColor[1], currentColor[2]);
+    document.getElementById('primaryIndex').innerHTML = "Primary: " + primaryLightIndex;
+    document.getElementById('secondaryIndex').innerHTML = "Secondary: " + secondaryLightIndex;
 }
