@@ -1,17 +1,28 @@
-// Digispark Start example - just to get things working.
-// the setup routine runs once when you press reset:
-void setup() {
-  // initialize the digital pin as an output.
-  pinMode(0, OUTPUT); //LED on Model B
-  pinMode(1, OUTPUT); //LED on Model A  or Pro
-}
+#include <Adafruit_NeoPixel.h>
 
-// the loop routine runs over and over again forever:
+// Pin connected to WS2812 data.
+#define PIN         0
+
+// Number of LEDs to drive.
+#define NUMPIXELS   4
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  strip.begin();
+}
+ 
 void loop() {
-  digitalWrite(0, HIGH);   // turn the LED on (HIGH is the voltage level)
-  digitalWrite(1, HIGH);
-  delay(1000);               // wait for a second
-  digitalWrite(0, LOW);    // turn the LED off by making the voltage LOW
-  digitalWrite(1, LOW);
-  delay(1000);               // wait for a second
+  chase(strip.Color(255, 0, 0)); // Red
+  chase(strip.Color(0, 255, 0)); // Green
+  chase(strip.Color(0, 0, 255)); // Blue
+}
+ 
+static void chase(uint32_t c) {
+  for(uint16_t i=0; i<strip.numPixels()+4; i++) {
+      strip.setPixelColor(i  , c); // Draw new pixel
+      strip.setPixelColor(i-1, 0); // Erase pixel a few steps back
+      strip.show();
+      delay(1000);
+  }
 }
