@@ -12,6 +12,7 @@ public:
   uint8_t getRed();
   uint8_t getGreen();
   uint8_t getBlue();
+  uint16_t getHue();
   void setRed(uint8_t value);
   void setGreen(uint8_t value);
   void setBlue(uint8_t value);

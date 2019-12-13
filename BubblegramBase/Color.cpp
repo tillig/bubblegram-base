@@ -25,6 +25,11 @@ uint8_t Color::getBlue()
   return blue;
 }
 
+uint16_t Color::getHue()
+{
+  return hue;
+}
+
 void Color::setRed(uint8_t value)
 {
   red = value;
