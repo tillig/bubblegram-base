@@ -1,0 +1,5 @@
+{
+    "board": "digistump:avr:digispark-tiny",
+    "sketch": "BubblegramBase\\BubblegramBase.ino",
+    "port": "COM4"
+}
