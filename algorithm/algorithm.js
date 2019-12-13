@@ -309,6 +309,7 @@ function mainLoop() {
             break;
         case LoopStates.WaveDown:
             waveDown();
+            break;
         default:
             break;
     }
@@ -373,7 +374,7 @@ function waveDown() {
 /** Chooses a new primary light, secondary light, and general color. */
 function setNewPrimary() {
     stateMonitor.primaryLightIndex = getRandomInt(lights.length - 1);
-    stateMonitor.secondaryLightIndex = (stateMonitor.primaryLightIndex + (lights.length / 2)) % lights.length;
+    stateMonitor.secondaryLightIndex = (stateMonitor.primaryLightIndex + lights.length / 2) % lights.length;
     var newHue = getRandomInt(360);
 
     console.log("New standard H: " + newHue);
