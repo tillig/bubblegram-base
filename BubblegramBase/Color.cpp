@@ -1,22 +1,67 @@
 #include "Color.h"
 
-Color::Color() {
+Color::Color()
+{
   red = 0;
   blue = 0;
   green = 0;
+  hue = 0;
+  saturation = 0;
+  lightness = 0;
 }
 
-void Color::fromColor(const Color& color) {
+uint8_t Color::getRed()
+{
+  return red;
+}
+
+uint8_t Color::getGreen()
+{
+  return green;
+}
+
+uint8_t Color::getBlue()
+{
+  return blue;
+}
+
+void Color::setRed(uint8_t value)
+{
+  red = value;
+  updateHsl();
+}
+
+void Color::setGreen(uint8_t value)
+{
+  green = value;
+  updateHsl();
+}
+
+void Color::setBlue(uint8_t value)
+{
+  blue = value;
+  updateHsl();
+}
+
+void Color::fromColor(const Color &color)
+{
   red = color.red;
   green = color.green;
   blue = color.blue;
+  updateHsl();
 }
 
 void Color::fromHsl(uint16_t h, float s, float l)
 {
-  if (h >= 360){
+  if (h >= 360)
+  {
     h %= 360;
   }
+
+  // Update private HSL values before calculating RGB.
+  hue = h;
+  saturation = s;
+  lightness = l;
 
   s = s / 100.0;
   l = l / 100.0;
@@ -69,7 +114,82 @@ void Color::fromHsl(uint16_t h, float s, float l)
   g = round((g + m) * 255);
   b = round((b + m) * 255);
 
+  // Update private RGB values - now HSL and RGB values are in sync.
   red = +r;
   green = +g;
   blue = +b;
+}
+
+// Updates the HSL values for the color based on whatever is set for RGB.
+void Color::updateHsl()
+{
+  // Red as a fraction of 1.
+  float r = red / 255.0;
+
+  // Green as a fraction of 1.
+  float g = green / 255.0;
+
+  // Blue as a fraction of 1.
+  float b = blue / 255.0;
+
+  // Smallest channel value.
+  float cmin = min(r, min(g, b));
+
+  // Largest channel value.
+  float cmax = max(r, max(g, b));
+
+  // Difference between the max and min channel values.
+  float delta = cmax - cmin;
+
+  // Calculated hue.
+  float h = 0;
+
+  // Calculated saturation.
+  float s = 0;
+
+  // Calculated lightness.
+  float l = 0;
+
+  // Calculate hue
+  // No difference
+  if (delta == 0)
+    h = 0;
+  // Red is max
+  else if (cmax == r)
+    h = fmod((g - b) / delta, 6);
+  // Green is max
+  else if (cmax == g)
+    h = (b - r) / delta + 2;
+  // Blue is max
+  else
+    h = (r - g) / delta + 4;
+
+  // H is fractional up to this point, after this
+  // it's OK to convert to int.
+  h = round(h * 60);
+
+  // Make negative hues positive behind 360°.
+  if (h < 0)
+    h += 360;
+
+  // Calculate lightness.
+  l = (cmax + cmin) / 2;
+
+  // Calculate saturation.
+  s = delta == 0 ? 0 : delta / (1 - abs(2 * l - 1));
+
+  // Multiply l and s by 100, round to the nearest tenth.
+  // Saturation and lightness are worked with as whole numbers
+  // rather than percentages, so 11.5 rather than 0.115.
+  s = floor((+s * 1000 + 0.5) / 10);
+  l = floor((+l * 1000 + 0.5) / 10);
+
+  hue = h;
+  saturation = s;
+  lightness = l;
+}
+
+bool Color::equals(const Color &color)
+{
+  return color.blue == blue && color.red == red && color.green == green;
 }
