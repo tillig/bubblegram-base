@@ -27,3 +27,12 @@ I'm using a Digispark ATTiny85 board, so I don't need an Arduino as an in-series
 I noticed that it's very picky on my machine which USB port the thing is plugged into. On one port the Digispark gets detected; on another it just doesn't register at all. I'm not sure why this is.
 
 I also noticed [it's best to unplug the Digispark, start the sketch upload from Arduino IDE, and _then_ plug it in when asked](https://digistump.com/board/index.php?topic=100.0) or the sketch fails to upload with an error `Assertion failed: res >= 4, file library/micronucleus_lib.c, line 63`. Unclear if this is something that could be fixed by updating the [micronucleus firmware from the default version 1.02 that's installed](https://github.com/micronucleus/micronucleus) but Digispark claims to not support that and it wasn't worth fighting.
+
+## IDE Setup
+
+If you're doing it the same way I did, you'll need to update the Arduino IDE with:
+
+- The Digistump boards installed [as noted on the tutorial](https://digistump.com/wiki/digispark/tutorials/connecting).
+- The Adafruit Neopixel library
+
+If you're using the VS Code extension for Arduino, you may see some squiggly red marks and compilation failures if you don't have that stuff. Also, check the `c_cpp_properties.json` for C++ include path updates you may need to do.
