@@ -3,6 +3,8 @@
 // After removing LoopStates enum - 7106
 // After removing LoopStateManager - 7072
 // Adding in actual rendering logic - 7314
+// Removed Color get methods - 7220
+// Removed Color set methods - 7130
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 #include "Light.h"
@@ -100,7 +102,7 @@ void render()
 {
   for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
-    strip.setPixelColor(i, lights[i].currentColor.getRed(), lights[i].currentColor.getGreen(), lights[i].currentColor.getBlue());
+    strip.setPixelColor(i, lights[i].currentColor.red, lights[i].currentColor.green, lights[i].currentColor.blue);
   }
 
   strip.show();
@@ -188,9 +190,10 @@ void transitionSingleLight(Light light)
 {
   if (!light.currentColor.equals(light.targetColor))
   {
-    light.currentColor.setRed(transitionColorValue(light.currentColor.getRed(), light.targetColor.getRed()));
-    light.currentColor.setGreen(transitionColorValue(light.currentColor.getGreen(), light.targetColor.getGreen()));
-    light.currentColor.setBlue(transitionColorValue(light.currentColor.getBlue(), light.targetColor.getBlue()));
+    light.currentColor.red = transitionColorValue(light.currentColor.red, light.targetColor.red);
+    light.currentColor.green = transitionColorValue(light.currentColor.green, light.targetColor.green);
+    light.currentColor.blue = transitionColorValue(light.currentColor.blue, light.targetColor.blue);
+    light.currentColor.updateHsl();
   }
 }
 
@@ -215,7 +218,7 @@ void waveDown()
 void waveInit()
 {
   // Wave just beginning, set it to go up.
-  uint16_t targetH = lights[primaryLightIndex].currentColor.getHue() + 90;
+  uint16_t targetH = lights[primaryLightIndex].currentColor.hue + 90;
 
   if (targetH > 360)
   {
@@ -233,9 +236,10 @@ void waveTransition()
 {
   transitionSingleLight(lights[secondaryLightIndex]);
   Color targetColor = Color();
-  targetColor.setRed(round((lights[primaryLightIndex].currentColor.getRed() + lights[secondaryLightIndex].currentColor.getRed()) / 2));
-  targetColor.setGreen(round((lights[primaryLightIndex].currentColor.getGreen() + lights[secondaryLightIndex].currentColor.getGreen()) / 2));
-  targetColor.setBlue(round((lights[primaryLightIndex].currentColor.getBlue() + lights[secondaryLightIndex].currentColor.getBlue()) / 2));
+  targetColor.red = round((lights[primaryLightIndex].currentColor.red + lights[secondaryLightIndex].currentColor.red) / 2);
+  targetColor.green = round((lights[primaryLightIndex].currentColor.green + lights[secondaryLightIndex].currentColor.green) / 2);
+  targetColor.blue = round((lights[primaryLightIndex].currentColor.blue + lights[secondaryLightIndex].currentColor.blue) / 2);
+  targetColor.updateHsl();
 
   for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
@@ -257,7 +261,7 @@ void waveUp()
   if (allLightsAtTarget())
   {
     // Wave hit the top, head down.
-    uint16_t targetH = lights[primaryLightIndex].currentColor.getHue() - 90;
+    uint16_t targetH = lights[primaryLightIndex].currentColor.hue - 90;
 
     if (targetH < 0)
     {

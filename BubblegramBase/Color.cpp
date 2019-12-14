@@ -10,44 +10,6 @@ Color::Color()
   lightness = 0;
 }
 
-uint8_t Color::getRed()
-{
-  return red;
-}
-
-uint8_t Color::getGreen()
-{
-  return green;
-}
-
-uint8_t Color::getBlue()
-{
-  return blue;
-}
-
-uint16_t Color::getHue()
-{
-  return hue;
-}
-
-void Color::setRed(uint8_t value)
-{
-  red = value;
-  updateHsl();
-}
-
-void Color::setGreen(uint8_t value)
-{
-  green = value;
-  updateHsl();
-}
-
-void Color::setBlue(uint8_t value)
-{
-  blue = value;
-  updateHsl();
-}
-
 void Color::fromColor(const Color &color)
 {
   red = color.red;

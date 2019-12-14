@@ -9,19 +9,6 @@ class Color
 public:
   Color();
 
-  uint8_t getRed();
-  uint8_t getGreen();
-  uint8_t getBlue();
-  uint16_t getHue();
-  void setRed(uint8_t value);
-  void setGreen(uint8_t value);
-  void setBlue(uint8_t value);
-
-  void fromColor(const Color &color);
-  void fromHsl(uint16_t h, float s, float l);
-  bool equals(const Color &color);
-
-private:
   uint8_t red;
   uint8_t green;
   uint8_t blue;
@@ -29,6 +16,9 @@ private:
   float saturation;
   float lightness;
 
+  void fromColor(const Color &color);
+  void fromHsl(uint16_t h, float s, float l);
+  bool equals(const Color &color);
   void updateHsl();
 };
 
