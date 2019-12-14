@@ -10,7 +10,6 @@ public:
     Light();
     Color currentColor;
     Color targetColor;
-    void Tester();
 };
 
 #endif
