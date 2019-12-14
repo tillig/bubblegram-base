@@ -5,6 +5,8 @@
 // Adding in actual rendering logic - 7314
 // Removed Color get methods - 7220
 // Removed Color set methods - 7130
+// Inline smoothTransition - 7126
+// Removed nextState method - 7088
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 #include "Light.h"
@@ -70,18 +72,21 @@ void loop()
   {
   case STATE_SETNEWPRIMARY:
     setNewPrimary();
-    nextState();
+    state = STATE_TRANSITIONTONEWPRIMARY;
     break;
   case STATE_TRANSITIONTONEWPRIMARY:
-    smoothTransition();
+    for (uint8_t i = 0; i < NUMPIXELS; i++)
+    {
+      transitionSingleLight(lights[i]);
+    };
     if (allLightsAtTarget())
     {
-      nextState();
+      state = STATE_WAVEINIT;
     }
     break;
   case STATE_WAVEINIT:
     waveInit();
-    nextState();
+    state = STATE_WAVEUP;
     break;
   case STATE_WAVEUP:
     waveUp();
@@ -121,29 +126,6 @@ bool allLightsAtTarget()
   return true;
 }
 
-void nextState()
-{
-  switch (state)
-  {
-  case STATE_SETNEWPRIMARY:
-    state = STATE_TRANSITIONTONEWPRIMARY;
-    break;
-  case STATE_TRANSITIONTONEWPRIMARY:
-    state = STATE_WAVEINIT;
-    break;
-  case STATE_WAVEINIT:
-    state = STATE_WAVEUP;
-    break;
-  case STATE_WAVEUP:
-    state = STATE_WAVEDOWN;
-    break;
-  case STATE_WAVEDOWN:
-    state = STATE_SETNEWPRIMARY;
-    break;
-  default:
-    break;
-  }
-}
 // Chooses a new primary light, secondary light, and general color.
 void setNewPrimary()
 {
@@ -154,17 +136,6 @@ void setNewPrimary()
   for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
     lights[i].targetColor.fromHsl(newHue, 100, 50);
-  }
-}
-
-/* Executes a smooth transition for all lights toward each light's target.
- * Accounts for the maximum allowed transition configured.
- */
-void smoothTransition()
-{
-  for (uint8_t i = 0; i < NUMPIXELS; i++)
-  {
-    transitionSingleLight(lights[i]);
   }
 }
 
@@ -206,7 +177,7 @@ void waveDown()
   if (allLightsAtTarget())
   {
     // Wave hit the bottom, time to move on.
-    nextState();
+    state = STATE_SETNEWPRIMARY;
     return;
   }
 
@@ -269,7 +240,7 @@ void waveUp()
     }
 
     lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
-    nextState();
+    state = STATE_WAVEDOWN;
   }
 
   waveTransition();
