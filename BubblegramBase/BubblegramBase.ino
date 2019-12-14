@@ -7,6 +7,7 @@
 // Removed Color set methods - 7130
 // Inline smoothTransition - 7126
 // Removed nextState method - 7088
+// Removed waveInit and extra instructions - 7078
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 #include "Light.h"
@@ -85,7 +86,7 @@ void loop()
     }
     break;
   case STATE_WAVEINIT:
-    waveInit();
+    lights[secondaryLightIndex].targetColor.fromHsl(lights[primaryLightIndex].currentColor.hue + 90, 100, 50);
     state = STATE_WAVEUP;
     break;
   case STATE_WAVEUP:
@@ -168,36 +169,6 @@ void transitionSingleLight(Light light)
   }
 }
 
-/* Handles the "wave down" state, executing a wave transition if the lights
- * aren't all at their target or transitioning to the new machine state if they
- * are. */
-void waveDown()
-{
-  // Wave going down.
-  if (allLightsAtTarget())
-  {
-    // Wave hit the bottom, time to move on.
-    state = STATE_SETNEWPRIMARY;
-    return;
-  }
-
-  waveTransition();
-}
-
-/* Handles the "wave init" state, selecting a target for the upward wave colors
- * and transitioning to the next machine state. */
-void waveInit()
-{
-  // Wave just beginning, set it to go up.
-  uint16_t targetH = lights[primaryLightIndex].currentColor.hue + 90;
-
-  if (targetH > 360)
-  {
-    targetH = targetH - 360;
-  }
-
-  lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
-}
 
 /* Executes a wave transition in the lights, where the primary light is held
  * stable, the secondary light is making a transition to a specific destination,
@@ -223,6 +194,22 @@ void waveTransition()
   }
 }
 
+/* Handles the "wave down" state, executing a wave transition if the lights
+ * aren't all at their target or transitioning to the new machine state if they
+ * are. */
+void waveDown()
+{
+  // Wave going down.
+  if (allLightsAtTarget())
+  {
+    // Wave hit the bottom, time to move on.
+    state = STATE_SETNEWPRIMARY;
+    return;
+  }
+
+  waveTransition();
+}
+
 /* Handles the "wave up" state, executing a wave transition if the lights
  * aren't all at their target or calculating a wave down target and
  * transitioning to the new machine state if they are. */
@@ -232,13 +219,10 @@ void waveUp()
   if (allLightsAtTarget())
   {
     // Wave hit the top, head down.
-    uint16_t targetH = lights[primaryLightIndex].currentColor.hue - 90;
-
-    if (targetH < 0)
-    {
-      targetH = 360 - targetH;
-    }
-
+    // + 270 because we actually want -90, but then we can get below
+    // 360 into negative numbers. Since fromHsl already handles >= 360
+    // we'll just add 360, so it's -90 + 360, or +270.
+    uint16_t targetH = lights[primaryLightIndex].currentColor.hue + 270;
     lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
     state = STATE_WAVEDOWN;
   }
