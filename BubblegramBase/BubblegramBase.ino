@@ -1,7 +1,8 @@
+// Before refactor - 7132 bytes
+// After removing LoopStates enum - 7106
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 #include "Light.h"
-#include "LoopState.h"
 #include "LoopStateMachine.h"
 
 // Pin connected to WS2812 data.
@@ -42,25 +43,25 @@ void loop()
 {
   switch (stateMonitor.getState())
   {
-  case SetNewPrimary:
+  case STATE_SETNEWPRIMARY:
     setNewPrimary();
     stateMonitor.transition();
     break;
-  case TransitionToNewPrimary:
+  case STATE_TRANSITIONTONEWPRIMARY:
     smoothTransition();
     if (allLightsAtTarget())
     {
       stateMonitor.transition();
     }
     break;
-  case WaveInit:
+  case STATE_WAVEINIT:
     waveInit();
     stateMonitor.transition();
     break;
-  case WaveUp:
+  case STATE_WAVEUP:
     waveUp();
     break;
-  case WaveDown:
+  case STATE_WAVEDOWN:
     waveDown();
     break;
   default:

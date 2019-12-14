@@ -2,12 +2,12 @@
 
 LoopStateMachine::LoopStateMachine()
 {
-    state = SetNewPrimary;
+    state = STATE_SETNEWPRIMARY;
     primaryLightIndex = 0;
     secondaryLightIndex = 0;
 }
 
-LoopState LoopStateMachine::getState()
+uint8_t LoopStateMachine::getState()
 {
     return state;
 }
@@ -16,20 +16,20 @@ void LoopStateMachine::transition()
 {
     switch (state)
     {
-    case SetNewPrimary:
-        state = TransitionToNewPrimary;
+    case STATE_SETNEWPRIMARY:
+        state = STATE_TRANSITIONTONEWPRIMARY;
         break;
-    case TransitionToNewPrimary:
-        state = WaveInit;
+    case STATE_TRANSITIONTONEWPRIMARY:
+        state = STATE_WAVEINIT;
         break;
-    case WaveInit:
-        state = WaveUp;
+    case STATE_WAVEINIT:
+        state = STATE_WAVEUP;
         break;
-    case WaveUp:
-        state = WaveDown;
+    case STATE_WAVEUP:
+        state = STATE_WAVEDOWN;
         break;
-    case WaveDown:
-        state = SetNewPrimary;
+    case STATE_WAVEDOWN:
+        state = STATE_SETNEWPRIMARY;
         break;
     default:
         break;
