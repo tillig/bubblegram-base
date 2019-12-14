@@ -8,7 +8,7 @@
 // Inline smoothTransition - 7126
 // Removed nextState method - 7088
 // Removed waveInit and extra instructions - 7078
-#include <Adafruit_NeoPixel.h>
+#include <WS2811.h>
 #include "Color.h"
 #include "Light.h"
 
@@ -42,8 +42,11 @@
 // State machine: Take the secondary light down.
 #define STATE_WAVEDOWN 4
 
-// The LED strip being driven.
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+// Define a function that can control the strip. This is one of the Digispark libraries.
+DEFINE_WS2811_FN(WS2811RGB, PORTB, PIN)
+
+// Track the RGB values in the strip.
+RGB_t rgb[4];
 
 // The current state of the state machine.
 uint8_t state = STATE_SETNEWPRIMARY;
@@ -64,7 +67,7 @@ void setup()
     lights[0] = Light();
   }
 
-  strip.begin();
+  pinMode(PIN, OUTPUT);
 }
 
 void loop()
@@ -108,10 +111,12 @@ void render()
 {
   for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
-    strip.setPixelColor(i, lights[i].currentColor.red, lights[i].currentColor.green, lights[i].currentColor.blue);
+    rgb[i].r = lights[i].currentColor.red;
+    rgb[i].g = lights[i].currentColor.green;
+    rgb[i].b = lights[i].currentColor.blue;
   }
 
-  strip.show();
+  WS2811RGB(rgb, ARRAYLEN(rgb));
 }
 
 // Determines if all the lights have their current and target colors identical.
