@@ -1,9 +1,11 @@
-// Before refactor - 7132 bytes
+// Target - 6012 bytes
+// Before refactor - 7132
 // After removing LoopStates enum - 7106
+// After removing LoopStateManager - 7072
+// Adding in actual rendering logic - 7314
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 #include "Light.h"
-#include "LoopStateMachine.h"
 
 // Pin connected to WS2812 data.
 #define PIN 0
@@ -20,11 +22,32 @@
 // The number of milliseconds to sleep before executing another loop.
 #define MS_PER_LOOP 100
 
+// State machine: Set a new primary color/light.
+#define STATE_SETNEWPRIMARY 0
+
+// State machine: Transition all lights to the new primary color.
+#define STATE_TRANSITIONTONEWPRIMARY 1
+
+// State machine: Get ready to do the wave up/down on secondary light.
+#define STATE_WAVEINIT 2
+
+// State machine: Take the secondary light up.
+#define STATE_WAVEUP 3
+
+// State machine: Take the secondary light down.
+#define STATE_WAVEDOWN 4
+
 // The LED strip being driven.
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-// The object that tracks the loop state.
-LoopStateMachine stateMonitor = LoopStateMachine();
+// The current state of the state machine.
+uint8_t state = STATE_SETNEWPRIMARY;
+
+// The primary light in the array of lights.
+uint8_t primaryLightIndex = 0;
+
+// The secondary light ("opposite corner") in the array of lights.
+uint8_t secondaryLightIndex = 0;
 
 // The set of lights in an addressable array.
 Light lights[NUMPIXELS];
@@ -41,22 +64,22 @@ void setup()
 
 void loop()
 {
-  switch (stateMonitor.getState())
+  switch (state)
   {
   case STATE_SETNEWPRIMARY:
     setNewPrimary();
-    stateMonitor.transition();
+    nextState();
     break;
   case STATE_TRANSITIONTONEWPRIMARY:
     smoothTransition();
     if (allLightsAtTarget())
     {
-      stateMonitor.transition();
+      nextState();
     }
     break;
   case STATE_WAVEINIT:
     waveInit();
-    stateMonitor.transition();
+    nextState();
     break;
   case STATE_WAVEUP:
     waveUp();
@@ -72,32 +95,14 @@ void loop()
   delay(MS_PER_LOOP);
 }
 
-/*
-static void chase(uint32_t c)
-{
-  for (uint16_t i = 0; i < strip.numPixels() + 4; i++)
-  {
-    strip.setPixelColor(i, c);     // Draw new pixel
-    strip.setPixelColor(i - 1, 0); // Erase pixel a few steps back
-    strip.show();
-    delay(1000);
-  }
-}
-*/
-
 // Updates the lights with the value in 'current color'.
 void render()
 {
-  // TODO: This is where we'll call the method to update the actual LEDs to the
-  // appropriate color.
-  /*
-  for (var index = 0; index < lights.length; index++)
+  for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
-    document.getElementById(lights[index].id).style.backgroundColor = lights[index].currentColor.toRgbString();
+    strip.setPixelColor(i, lights[i].currentColor.getRed(), lights[i].currentColor.getGreen(), lights[i].currentColor.getBlue());
   }
-  document.getElementById('primaryIndex').innerHTML = "Primary: " + stateMonitor.primaryLightIndex;
-  document.getElementById('secondaryIndex').innerHTML = "Secondary: " + stateMonitor.secondaryLightIndex;
-  */
+
   strip.show();
 }
 
@@ -114,11 +119,34 @@ bool allLightsAtTarget()
   return true;
 }
 
+void nextState()
+{
+  switch (state)
+  {
+  case STATE_SETNEWPRIMARY:
+    state = STATE_TRANSITIONTONEWPRIMARY;
+    break;
+  case STATE_TRANSITIONTONEWPRIMARY:
+    state = STATE_WAVEINIT;
+    break;
+  case STATE_WAVEINIT:
+    state = STATE_WAVEUP;
+    break;
+  case STATE_WAVEUP:
+    state = STATE_WAVEDOWN;
+    break;
+  case STATE_WAVEDOWN:
+    state = STATE_SETNEWPRIMARY;
+    break;
+  default:
+    break;
+  }
+}
 // Chooses a new primary light, secondary light, and general color.
 void setNewPrimary()
 {
-  stateMonitor.primaryLightIndex = rand() % NUMPIXELS;
-  stateMonitor.secondaryLightIndex = (stateMonitor.primaryLightIndex + NUMPIXELS / 2) % NUMPIXELS;
+  primaryLightIndex = rand() % NUMPIXELS;
+  secondaryLightIndex = (primaryLightIndex + NUMPIXELS / 2) % NUMPIXELS;
   uint16_t newHue = rand() % 360;
 
   for (uint8_t i = 0; i < NUMPIXELS; i++)
@@ -175,7 +203,7 @@ void waveDown()
   if (allLightsAtTarget())
   {
     // Wave hit the bottom, time to move on.
-    stateMonitor.transition();
+    nextState();
     return;
   }
 
@@ -187,14 +215,14 @@ void waveDown()
 void waveInit()
 {
   // Wave just beginning, set it to go up.
-  uint16_t targetH = lights[stateMonitor.primaryLightIndex].currentColor.getHue() + 90;
+  uint16_t targetH = lights[primaryLightIndex].currentColor.getHue() + 90;
 
   if (targetH > 360)
   {
     targetH = targetH - 360;
   }
 
-  lights[stateMonitor.secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
+  lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
 }
 
 /* Executes a wave transition in the lights, where the primary light is held
@@ -203,15 +231,15 @@ void waveInit()
  */
 void waveTransition()
 {
-  transitionSingleLight(lights[stateMonitor.secondaryLightIndex]);
+  transitionSingleLight(lights[secondaryLightIndex]);
   Color targetColor = Color();
-  targetColor.setRed(round((lights[stateMonitor.primaryLightIndex].currentColor.getRed() + lights[stateMonitor.secondaryLightIndex].currentColor.getRed()) / 2));
-  targetColor.setGreen(round((lights[stateMonitor.primaryLightIndex].currentColor.getGreen() + lights[stateMonitor.secondaryLightIndex].currentColor.getGreen()) / 2));
-  targetColor.setBlue(round((lights[stateMonitor.primaryLightIndex].currentColor.getBlue() + lights[stateMonitor.secondaryLightIndex].currentColor.getBlue()) / 2));
+  targetColor.setRed(round((lights[primaryLightIndex].currentColor.getRed() + lights[secondaryLightIndex].currentColor.getRed()) / 2));
+  targetColor.setGreen(round((lights[primaryLightIndex].currentColor.getGreen() + lights[secondaryLightIndex].currentColor.getGreen()) / 2));
+  targetColor.setBlue(round((lights[primaryLightIndex].currentColor.getBlue() + lights[secondaryLightIndex].currentColor.getBlue()) / 2));
 
   for (uint8_t i = 0; i < NUMPIXELS; i++)
   {
-    if (i != stateMonitor.secondaryLightIndex && i != stateMonitor.primaryLightIndex)
+    if (i != secondaryLightIndex && i != primaryLightIndex)
     {
       // Other lights should be halfway between primary and secondary.
       lights[i].currentColor.fromColor(targetColor);
@@ -229,15 +257,15 @@ void waveUp()
   if (allLightsAtTarget())
   {
     // Wave hit the top, head down.
-    uint16_t targetH = lights[stateMonitor.primaryLightIndex].currentColor.getHue() - 90;
+    uint16_t targetH = lights[primaryLightIndex].currentColor.getHue() - 90;
 
     if (targetH < 0)
     {
       targetH = 360 - targetH;
     }
 
-    lights[stateMonitor.secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
-    stateMonitor.transition();
+    lights[secondaryLightIndex].targetColor.fromHsl(targetH, 100, 50);
+    nextState();
   }
 
   waveTransition();
