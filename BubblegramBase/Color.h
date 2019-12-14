@@ -2,7 +2,6 @@
 #define Color_h
 
 #include "Arduino.h"
-#include <math.h>
 
 class Color
 {
