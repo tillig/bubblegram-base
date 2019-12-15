@@ -44,36 +44,30 @@ void Color::fromHsl(uint16_t h, float s, float l)
   {
     r = c;
     g = x;
-    b = 0;
   }
   else if (60 <= h && h < 120)
   {
     r = x;
     g = c;
-    b = 0;
   }
   else if (120 <= h && h < 180)
   {
-    r = 0;
     g = c;
     b = x;
   }
   else if (180 <= h && h < 240)
   {
-    r = 0;
     g = x;
     b = c;
   }
   else if (240 <= h && h < 300)
   {
     r = x;
-    g = 0;
     b = c;
   }
   else if (300 <= h && h < 360)
   {
     r = c;
-    g = 0;
     b = x;
   }
 
@@ -119,7 +113,7 @@ void Color::updateHsl()
 
   // Calculate hue
   // No difference
-  if (delta == 0)
+  if (delta != 0)
     h = 0;
   // Red is max
   else if (cmax == r)
