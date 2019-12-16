@@ -1,8 +1,3 @@
-// Target - 6012 bytes
-// The full wave up/down is too many instructions. Also, HSL calculations never
-// seem to yield bright enough colors with the lights. Instead, let's always
-// make the random color based on full RGB values - 255 or 0, and the secondary
-// can be between 128 and 255 for a value, but no less. Also, no monochrome.
 #include <Adafruit_NeoPixel.h>
 #include "Color.h"
 
@@ -15,14 +10,18 @@
 // Amount of time between LED updates.
 #define MS_PER_LOOP 200
 
+// Amount of time to hold between solid color / different color transitions.
+#define MS_PER_HOLD 2500
+
 // The most any RGB value can move in a single loop.
 #define MAX_TRANSITION_RGB 5
 
-// The default amount of HSL lightness to use when picking a target color.
-#define TARGET_LIGHTNESS_PERCENT 25
-
 // Default brightness of the strip. Darker seems to produce richer colors up to a point.
 #define INITIAL_STRIP_BRIGHTNESS 50
+
+// Chooses a random number 0, 128, 255 - for selecting reasonably primary RGB
+// values.
+#define rand_rgb() min(255, 128 * (rand() % 3))
 
 // WS2812 lights being controlled.
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
@@ -55,34 +54,58 @@ void loop()
 {
   primaryLightIndex = rand() % NUMPIXELS;
   secondaryLightIndex = (primaryLightIndex + NUMPIXELS / 2) % NUMPIXELS;
-  uint16_t newHue = rand() % 360;
+  Color newColor = randomPrimary();
   uint8_t loopIndex = 0;
 
   for (loopIndex = 0; loopIndex < NUMPIXELS; loopIndex++)
   {
-    targetColor[loopIndex].red = 255;
-    targetColor[loopIndex].green = 0;
-    targetColor[loopIndex].blue = 0;
-    //.fromHsl(0, 100, TARGET_LIGHTNESS_PERCENT);
+    targetColor[loopIndex].fromColor(newColor);
   }
 
   transitionLoop();
+
+  delay(MS_PER_HOLD);
 
   // Instead of wave up / wave down, we'll just pick one direction and a random
   // amount.
-  uint8_t hueDifferential = rand() % 270;
-  targetColor[secondaryLightIndex].fromHsl(currentColor[primaryLightIndex].hue + hueDifferential, 100, TARGET_LIGHTNESS_PERCENT);
   for (loopIndex = 0; loopIndex < NUMPIXELS; loopIndex++)
   {
-    if (loopIndex != primaryLightIndex && loopIndex != secondaryLightIndex)
+    if (loopIndex == primaryLightIndex)
     {
-      targetColor[loopIndex].red = (targetColor[primaryLightIndex].red + targetColor[secondaryLightIndex].red) / 2;
-      targetColor[loopIndex].green = (targetColor[primaryLightIndex].green + targetColor[secondaryLightIndex].green) / 2;
-      targetColor[loopIndex].blue = (targetColor[primaryLightIndex].blue + targetColor[secondaryLightIndex].blue) / 2;
+      continue;
     }
+
+    if (loopIndex == secondaryLightIndex)
+    {
+      while (newColor.equals(targetColor[primaryLightIndex]))
+      {
+        newColor = randomPrimary();
+      }
+      targetColor[loopIndex].fromColor(newColor);
+      continue;
+    }
+
+    targetColor[loopIndex].red = 0;
+    targetColor[loopIndex].green = 0;
+    targetColor[loopIndex].blue = 0;
   }
 
   transitionLoop();
+
+  delay(MS_PER_HOLD);
+}
+
+static Color randomPrimary()
+{
+  Color random = Color();
+  while (random.isMonochrome())
+  {
+    random.red = rand_rgb();
+    random.green = rand_rgb();
+    random.blue = rand_rgb();
+  }
+
+  return random;
 }
 
 static void transitionLoop()
