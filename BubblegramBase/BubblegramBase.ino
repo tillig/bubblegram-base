@@ -17,7 +17,7 @@
 #define MAX_TRANSITION_RGB 5
 
 // Default brightness of the strip. Darker seems to produce richer colors up to a point.
-#define INITIAL_STRIP_BRIGHTNESS 50
+#define INITIAL_STRIP_BRIGHTNESS 100
 
 // Chooses a random number 0, 128, 255 - for selecting reasonably primary RGB
 // values.
