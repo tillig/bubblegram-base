@@ -7,6 +7,9 @@
 // Number of LEDs to drive.
 #define NUMPIXELS 4
 
+// Half of the pixels. Used when figuring out which ones to turn on.
+#define HALF_NUM_PIXELS NUMPIXELS / 2
+
 // Amount of time between LED updates.
 #define MS_PER_LOOP 200
 
@@ -17,7 +20,7 @@
 #define MAX_TRANSITION_RGB 5
 
 // Default brightness of the strip. Darker seems to produce richer colors up to a point.
-#define INITIAL_STRIP_BRIGHTNESS 100
+#define INITIAL_STRIP_BRIGHTNESS 75
 
 // Chooses a random number 0, 128, 255 - for selecting reasonably primary RGB
 // values.
@@ -32,11 +35,9 @@ Color currentColor[NUMPIXELS];
 // The set of target ("heading toward") colors for the lights.
 Color targetColor[NUMPIXELS];
 
-// The "primary light" - fixed color, other lights move.
+// The "primary light" around which operations happen. Gets randomized to ensure
+// the same lights aren't just changing all the time.
 uint8_t primaryLightIndex = 0;
-
-// The "secondary light" - leads the wave.
-uint8_t secondaryLightIndex = 0;
 
 void setup()
 {
@@ -52,47 +53,41 @@ void setup()
 
 void loop()
 {
-  primaryLightIndex = rand() % NUMPIXELS;
-  secondaryLightIndex = (primaryLightIndex + NUMPIXELS / 2) % NUMPIXELS;
+  // Primary rotates from one pixel to the next.
+  if(primaryLightIndex >= NUMPIXELS)
+  {
+    primaryLightIndex = 0;
+  }
+
   Color newColor = randomPrimary();
   uint8_t loopIndex = 0;
 
+  // Set everything to a solid color.
   for (loopIndex = 0; loopIndex < NUMPIXELS; loopIndex++)
   {
     targetColor[loopIndex].fromColor(newColor);
   }
 
   transitionLoop();
-
   delay(MS_PER_HOLD);
 
-  // Instead of wave up / wave down, we'll just pick one direction and a random
-  // amount.
-  for (loopIndex = 0; loopIndex < NUMPIXELS; loopIndex++)
+  // Split the lights in half. One half stays the same, one half
+  // transitions to a new color.
+  while (newColor.equals(targetColor[primaryLightIndex]))
   {
-    if (loopIndex == primaryLightIndex)
-    {
-      continue;
-    }
+    newColor = randomPrimary();
+  }
 
-    if (loopIndex == secondaryLightIndex)
-    {
-      while (newColor.equals(targetColor[primaryLightIndex]))
-      {
-        newColor = randomPrimary();
-      }
-      targetColor[loopIndex].fromColor(newColor);
-      continue;
-    }
-
-    targetColor[loopIndex].red = 0;
-    targetColor[loopIndex].green = 0;
-    targetColor[loopIndex].blue = 0;
+  for (loopIndex = HALF_NUM_PIXELS; loopIndex < NUMPIXELS; loopIndex++)
+  {
+    uint8_t index = (primaryLightIndex + loopIndex) % NUMPIXELS;
+    targetColor[index].fromColor(newColor);
   }
 
   transitionLoop();
-
   delay(MS_PER_HOLD);
+
+  primaryLightIndex++;
 }
 
 static Color randomPrimary()
