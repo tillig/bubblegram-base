@@ -6,19 +6,29 @@ Arduino-controlled WS281x lights used for a laser crystal / vitrography / bubble
 
 When I went to Walt Disney World I got a really cool [bubblegram](https://en.wikipedia.org/wiki/Bubblegram) of one of the Pandora woodsprites from _Avatar_. With it came a small base unit that had some LEDs that would light the bubblegram up in a pleasing way.
 
-The LED pattern was very simple - it had four LEDs (blue, red, green, orange) and would just do a simple pattern by turning individual bulbs on. It looked nice, but I thought it could use a better color range to provide a wider array of visuals.
+The LED pattern was very simple - it had four LEDs (blue, red, green, orange) arranged in a square and would just do a simple pattern by turning individual bulbs on. It looked nice, but I thought it could use a better color range to provide a wider array of visuals.
 
 I had some WS2812 lights left over from another project, so I figured a base that had four of these instead of four fixed-color lights could create some pretty cool stuff.
 
 ## Algorithm
 
-I made the basic algorithm in JavaScript so I could try it out in a simple JS/HTML view. That HTML page is in the `algorithm` folder. Given four lights arranged in a square:
+I started with a fairly fancy thing where it would fade from one color to the next and do a lot of mixes... but I found out some stuff about bubblegrams.
 
-- Pick one to be the "primary." The light in the opposite corner is "secondary."
-- Pick a random bright color for the primary light - in HSL, that means any hue, 100% saturation, 50% light.
-- Fade all the lights to the primary color.
-- Cycle the secondary color +/- 180 on the HSL scale - this will be a wave-like rainbow around the primary color. The opposite corner "tertiary" lights should stay halfway between the primary light and secondary light on the RGB scale to create a nice "gradient" between them.
-- After the rainbow wave has completed on the secondary and returned back to the primary color, pick a new primary and repeat the process.
+- Fewer colors is better. After everything gets diffused in there, lots of colors turn out being indistinguishable.
+- Color grouping is better. If you can have two lights next to each other (instead of diagonal opposites) being the same color, that'll be better.
+- Primary bright colors are better. Subtle pastels and things don't show up well.
+
+I also found that random is really hard to debug on a small board with no console. Is my algorithm wrong or is it just randomly not choosing this combination?
+
+In the end, I went simple:
+
+- A "primary" light index starts at zero.
+- Choose a random color.
+- All the lights fade to a randomly chosen color.
+- A new random color is chosen.
+  - The primary light and the half of the lights adjacent to it stay the original color.
+  - The rest of the lights fade to the new color.
+- The primary light index increments. Loop!
 
 ## Board
 
